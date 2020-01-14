@@ -1,7 +1,20 @@
 import spotipy
 import spotipy.util as util
-from spotipy import oauth2
 from credentials import USERNAME, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
+from bs4 import BeautifulSoup
+import requests
+
+def get_prog_songs():
+    base_url = "http://www.progarchives.com/top-prog-albums.asp?s"
+    subgenre = "subgenres=43" + "&"
+    album_types = "albumtypes=1" + "&"
+    years = "years=" + "&"
+    countries = "countries=" + "&"
+    minratings = "minratings=" + "&"
+    maxratings = "maxratings=" + "&"
+    minavgratings = "minavgratings=0" + "&"
+    max_results = "maxresults=250" + "&"
+    #TODO: create request url out of above
 
 if __name__ == "__main__":
 
