@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import random
+import json
 
 class Album:
     def __init__(self, artist, album_name, url):
@@ -14,9 +15,6 @@ class Album:
 
     def __str__(self):
         return f"{self.artist} - {self.album_name} // {self.url}"
-
-
-
 
 
 def get_prog_songs():
@@ -61,24 +59,29 @@ def get_album_songs_from_url(album_url):
 if __name__ == "__main__":
     album_list = get_prog_songs()
     random.shuffle(album_list)
-    output = []
-    for i in range(10):
-        songs = get_album_songs_from_url(album_list[i].url)
-        output.append(f"{random.choice(songs)} {album_list[i].artist}")
+    SCOPE = "playlist-modify-public"
+    CACHE = ".spotipyoauthcache"
+    token = util.prompt_for_user_token(USERNAME, SCOPE, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI)
+    if token:
+        sp = spotipy.Spotify(auth=token)
+        playlist = sp.user_playlist(user=USERNAME, playlist_id="4NDOGu4SwODtZIgkG205yX")
 
-    print(output)
+        print(f"album: {album_list[1].album_name}  artist:{album_list[1].artist}")
+        try:
+            test = sp.search(q="album:" + album_list[1].album_name, type="album", limit=1)
+        except IndexError:
+            print("Album not on Spotify")
+            exit(1)
+
+        result = test['albums']['items'][0]
+        result_artist_name = result['artists'][0]['name']
+        if result_artist_name == album_list[1].artist:
+            result_uri = result['uri']
+            spotify_album = sp.album_tracks(result_uri)
+            for item in spotify_album['items']:
+                print(item)
 
 
-
-
-
-
-    #SCOPE = "playlist-modify-public"
-    #CACHE = ".spotipyoauthcache"
-    #token = util.prompt_for_user_token(USERNAME, SCOPE, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI)
-    #if token:
-    #    sp = spotipy.Spotify(auth=token)
-    #    playlist = sp.user_playlist(user=USERNAME, playlist_id="4NDOGu4SwODtZIgkG205yX")
 
 
 
