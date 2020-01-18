@@ -7,7 +7,7 @@ import random
 import psycopg2
 from psycopg2 import sql
 import re
-
+from fuzzywuzzy import fuzz
 class Artist:
     def __init__(self, name, id, genre, url):
         self.name = name
@@ -246,15 +246,34 @@ def get_random_genre():
 
 
 def get_progarchives_album_rating(artist_url, album_name):
+    data = requests.get("http://www.progarchives.com/" + artist_url)
     try:
-        data = requests.get("http://www.progarchives.com/" + artist_url)
         soup = BeautifulSoup(data.text.lower(), "html.parser")
         album = soup.find("strong", text=album_name.lower())
         parent = album.parent.parent
         rating = parent.find("span", {"id": re.compile("avgratings.*")})
         return rating.text
     except AttributeError:
-        return "No Rating"
+        soup = BeautifulSoup(data.text, "html.parser")
+        strong_tags = soup.find_all("strong")
+        album_songs = []
+        compared_albums = []
+        for tag in strong_tags:
+            tag_string = str(tag)
+            pre_string = re.sub("<strong>", "", tag_string)
+            post_string = re.sub("</strong>", "", pre_string)
+            print(post_string)
+            compared_albums.append((fuzz.partial_ratio(album_name, post_string), post_string))
+
+        max = 0
+        output = ()
+        output_list = []
+        for album in compared_albums:
+            print(album)
+
+
+        #print(album)
+
 
 
 if __name__ == "__main__":
@@ -287,4 +306,5 @@ if __name__ == "__main__":
     conn.close()
 
 # TODO: fix the album matching for progarchives
+# TODO: fix fuzzy matching
 # TODO: assign weights to albums based on ratings/num of ratings
