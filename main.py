@@ -255,24 +255,17 @@ def get_progarchives_album_rating(artist_url, album_name):
         return rating.text
     except AttributeError:
         soup = BeautifulSoup(data.text, "html.parser")
-        strong_tags = soup.find_all("strong")
+        table_elements = soup.find_all("td")
         album_songs = []
         compared_albums = []
-        for tag in strong_tags:
-            tag_string = str(tag)
-            pre_string = re.sub("<strong>", "", tag_string)
-            post_string = re.sub("</strong>", "", pre_string)
-            print(post_string)
-            compared_albums.append((fuzz.partial_ratio(album_name, post_string), post_string))
-
-        max = 0
-        output = ()
-        output_list = []
-        for album in compared_albums:
-            print(album)
+        for item in table_elements:
+            children = item.find_all("span", {"id": re.compile("avgRatings.*")})
+            if children:
+                album_name = item.find("strong")
+                print(album_name)
 
 
-        #print(album)
+            #compared_albums.append((fuzz.partial_ratio(album_name, post_string), post_string))
 
 
 
@@ -299,8 +292,8 @@ if __name__ == "__main__":
 
     for album in albums:
         album = Album(album[0], album[1])
-        print(album.name)
-        print(get_progarchives_album_rating(artist.url, album.name))
+        #print(album.name)
+        get_progarchives_album_rating(artist.url, album.name)
     conn.commit()
     cur.close()
     conn.close()
