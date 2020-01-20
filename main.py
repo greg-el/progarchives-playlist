@@ -247,6 +247,7 @@ def get_random_genre():
 
 def get_progarchives_album_rating(artist_url, album_name):
     data = requests.get("http://www.progarchives.com/" + artist_url)
+    output = []
     try:
         soup = BeautifulSoup(data.text.lower(), "html.parser")
         album = soup.find("strong", text=album_name.lower())
@@ -263,6 +264,16 @@ def get_progarchives_album_rating(artist_url, album_name):
             if children:
                 album_name = item.find("strong")
                 print(album_name)
+                match = re.match("<strong>(.*)<\/strong>", str(album_name))
+                if match:
+                    ratio = fuzz.partial_ratio(match.group(1).lower(), str(album_name).lower())
+                    if len(output) > 0:
+                        if output[0] > ratio:
+                            output = [ratio, str(album_name)]
+                    else:
+                        output = [ratio, str(album_name)]
+
+    print(output)
 
 
             #compared_albums.append((fuzz.partial_ratio(album_name, post_string), post_string))
@@ -285,7 +296,7 @@ if __name__ == "__main__":
 
     conn = psycopg2.connect(dbname="data", user="postgres")
     cur = conn.cursor()
-    cur.execute('SELECT * FROM artists WHERE name=%s;', ("JOHN GREAVES", ))
+    cur.execute('SELECT * FROM artists WHERE name=%s;', ("CARAVAN", ))
     output_data = cur.fetchone()
     artist = Artist(output_data[1], output_data[2], output_data[3], output_data[4])
     albums = get_artist_albums(spotify=sp, artist_id=artist.id)
