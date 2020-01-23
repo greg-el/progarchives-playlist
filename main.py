@@ -30,6 +30,13 @@ class Album:
     def __str__(self):
         return f"{self.id} - {self.name}"
 
+class Song:
+    def __init__(self, id, name, popularity):
+        self.id = id
+        self.name = name
+        self.popularity = popularity
+
+
 
 def database_exists():
     conn = psycopg2.connect(dbname="postgres", user="postgres")
@@ -106,13 +113,20 @@ def get_genre_from_database(genre):
     return output
 
 
-def get_songs_from_albums(spotify, albums):
+def get_songs_id_and_popularity_from_albums(spotify, albums):
+    output = []
     output_songs = []
     for album in albums:
+        print(album)
         result = spotify.album_tracks(album)
-        output_songs.append(result['items'][0]['id'])
+        for i in range(len(result)):
+            song_id = result['items'][i]['id']
+            spotify_request = spotify.track(song_id)
+            output_songs.append(Song(result['items'][i]['id'], spotify_request['name'], spotify_request['popularity']))
+        output.append(output_songs)
+        output_songs = []
 
-    return output_songs
+    return output
 
 
 def get_artist_id_from_name(artist, spotify):
@@ -298,16 +312,27 @@ if __name__ == "__main__":
     cur = conn.cursor()
     cur.execute('SELECT * FROM artists WHERE name=%s;', ("CARAVAN", ))
     output_data = cur.fetchone()
-    artist = Artist(output_data[1], output_data[2], output_data[3], output_data[4])
-    albums = get_artist_albums(spotify=sp, artist_id=artist.id)
-
-    for album in albums:
-        album = Album(album[0], album[1])
-        #print(album.name)
-        get_progarchives_album_rating(artist.url, album.name)
     conn.commit()
     cur.close()
     conn.close()
+
+    artist = Artist(output_data[1], output_data[2], output_data[3], output_data[4])
+    albums = get_artist_albums(spotify=sp, artist_id=artist.id)
+    album_names = [x[0] for x in albums]
+    results = get_songs_id_and_popularity_from_albums(sp, album_names)
+    test = []
+    for album in results:
+        for song in album:
+            for i in range(song.popularity):
+                test.append(song.name)
+
+    random_selections = []
+    for i in range(30):
+        random_selections.append(random.randint(0, len(test)))
+
+    for index in random_selections:
+        print(test[index])
+
 
 # TODO: fix the album matching for progarchives
 # TODO: fix fuzzy matching
