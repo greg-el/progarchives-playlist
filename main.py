@@ -219,6 +219,7 @@ def add_genre_to_database(genre):
         artist_name = artist[0]
         artist_url = artist[1]
         artist_id = get_artist_id_from_name(artist_name, sp)
+        print(artist_name)
         if artist_id:
             add_artist_to_db(artist_name, artist_id, genre_name, artist_url)
 
@@ -306,11 +307,11 @@ if __name__ == "__main__":
     if not database_exists():
         create_database()
         create_table()
-        add_genre_to_database((12, "Canterbury Scene"))
+        add_genre_to_database((3, "Crossover Prog"))
 
     conn = psycopg2.connect(dbname="data", user="postgres")
     cur = conn.cursor()
-    cur.execute('SELECT * FROM artists WHERE name=%s;', ("CARAVAN", ))
+    cur.execute('SELECT * FROM artists WHERE name=%s;', ("STEVEN WILSON", ))
     output_data = cur.fetchone()
     conn.commit()
     cur.close()
@@ -326,14 +327,18 @@ if __name__ == "__main__":
             for i in range(song.popularity):
                 test.append(song.name)
 
-    random_selections = []
-    for i in range(30):
-        random_selections.append(random.randint(0, len(test)))
+    random.shuffle(test)
 
-    for index in random_selections:
-        print(test[index])
+    output = []
+    i = 1
+    output.append(test[0])
+    while len(output) < 30:
+        if test[i] not in output:
+            output.append(test[i])
 
+        i += 1
 
-# TODO: fix the album matching for progarchives
-# TODO: fix fuzzy matching
+    for song in output:
+        print(song)
+# TODO: fix artist names with special characters breaking everything when inserting into db
 # TODO: assign weights to albums based on ratings/num of ratings
