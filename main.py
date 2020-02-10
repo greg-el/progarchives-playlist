@@ -8,6 +8,10 @@ import psycopg2
 from psycopg2 import sql
 import re
 from fuzzywuzzy import fuzz
+import logging
+logging.basicConfig(filename='main.log', level="INFO")
+logger = logging.getLogger()
+
 class Artist:
     def __init__(self, name, id, genre, url):
         self.name = name
@@ -117,12 +121,22 @@ def get_songs_id_and_popularity_from_albums(spotify, albums):
     output = []
     output_songs = []
     for album in albums:
-        print(album)
         result = spotify.album_tracks(album)
-        for i in range(len(result)):
-            song_id = result['items'][i]['id']
-            spotify_request = spotify.track(song_id)
-            output_songs.append(Song(result['items'][i]['id'], spotify_request['name'], spotify_request['popularity']))
+        print(result)
+        print(len(result['items']))
+        for i in range(len(result['items'])):
+            try:
+                song_id = result['items'][i]['id']
+                spotify_request = spotify.track(song_id)
+                output_songs.append(Song(song_id, spotify_request['name'], spotify_request['popularity']))
+                i += 1
+            except IndexError as e:
+                print(e)
+                song_id = result['items'][0]['id']
+                spotify_request = spotify.track(song_id)
+                print(spotify_request['popularity'])
+                print("No popularity rating")
+                exit(1)
         output.append(output_songs)
         output_songs = []
 
@@ -294,7 +308,6 @@ def get_progarchives_album_rating(artist_url, album_name):
             #compared_albums.append((fuzz.partial_ratio(album_name, post_string), post_string))
 
 
-
 if __name__ == "__main__":
     SCOPE = "playlist-modify-public"
     CACHE = ".spotipyoauthcache"
@@ -307,38 +320,45 @@ if __name__ == "__main__":
     if not database_exists():
         create_database()
         create_table()
-        add_genre_to_database((3, "Crossover Prog"))
+        populate_database()
 
     conn = psycopg2.connect(dbname="data", user="postgres")
     cur = conn.cursor()
-    cur.execute('SELECT * FROM artists WHERE name=%s;', ("STEVEN WILSON", ))
-    output_data = cur.fetchone()
+    cur.execute('SELECT * FROM artists WHERE genre=%s;', ("Psychedelic/Space Rock", ))
+    output_data = cur.fetchall()
     conn.commit()
     cur.close()
     conn.close()
 
-    artist = Artist(output_data[1], output_data[2], output_data[3], output_data[4])
-    albums = get_artist_albums(spotify=sp, artist_id=artist.id)
-    album_names = [x[0] for x in albums]
-    results = get_songs_id_and_popularity_from_albums(sp, album_names)
-    test = []
-    for album in results:
-        for song in album:
-            for i in range(song.popularity):
-                test.append(song.name)
+    random.shuffle(output_data)
+    playlist_songs = []
 
-    random.shuffle(test)
+    for data in output_data:
+        if len(playlist_songs) == 30:
+            break
+        try:
+            artist_songs = []
+            artist = Artist(name=data[1], id=data[2], genre=data[3], url=data[4])
+            albums = get_artist_albums(spotify=sp, artist_id=artist.id)
+            album_names = [x[0] for x in albums]
+            logger.info(album_names)
+            results = get_songs_id_and_popularity_from_albums(sp, album_names)
+            logger.info(results)
+            logger.info(data)
+            for album in results:
+                logger.info(album)
+                for song in album:
+                    popularity_weighting = int(song.popularity/10)+1 if song.popularity != 100 else 10
+                    for i in range(popularity_weighting):
+                        artist_songs.append(song.id)
 
-    output = []
-    i = 1
-    output.append(test[0])
-    while len(output) < 30:
-        if test[i] not in output:
-            output.append(test[i])
+            logger.info(artist_songs)
+            playlist_songs.append(random.choice(artist_songs))
+        except IndexError:
+            continue
 
-        i += 1
+    add_list_of_songs_to_playlist(sp, playlist_songs, "Crossover Prog")
 
-    for song in output:
-        print(song)
+
 # TODO: fix artist names with special characters breaking everything when inserting into db
 # TODO: assign weights to albums based on ratings/num of ratings
